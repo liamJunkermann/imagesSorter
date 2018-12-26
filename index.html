@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+
+<head>
+	<title>Image Sorter</title>
+	<!--Stylesheet-->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+	    crossorigin="anonymous">
+</head>
+
+<body>
+	<div id="content" class="container">
+		<div class="form-group">
+			<label for="user">User:</label>
+			<input type="text" name="user" class="form-control" id="user" placeholder="User">
+		</div>
+		<div class="form-group">
+			<label for="month-selection">Month:</label>
+			<select class="form-control" id="month-selection">
+			</select>
+		</div>
+		<button type="button" class="btn btn-success" id="btn-go">Go</button>
+	</div>
+	<script type="text/javascript">
+		var imagesJson = "";
+		var indexedFile;
+		var unindexedImages = [];
+
+		var mthsel = document.querySelector("#month-selection");
+		for(var i=0;i<12;i++) {
+		  var opt = document.createElement("option");
+		  opt.innerHTML = i<10?"0"+(i+1):(i+1);
+		  mthsel.appendChild(opt);
+		}
+		document.querySelector("#btn-go").onclick = function onLoad(e) {
+			e.preventDefault();
+			var month = document.getElementById('month-selection').value;
+			// Load user json file with xmlhttprequest
+
+			var xhr = new XMLHttpRequest();
+			var user = document.getElementById('user').value;
+			xhr.open('GET', '/indexedFile/' + user + '-' + month + '.json', true);
+			xhr.responseType = 'text';
+			xhr.onload = function () {
+				if (xhr.readyState === xhr.DONE) {
+					if (xhr.status === 200)
+						indexedFile = JSON.parse(xhr.responseText);
+					else
+						indexedFile = {
+							cars: [],
+							nocars: [],
+							counter: 0,
+							month: month,
+							user: user
+						};
+					loadImages();
+				}
+			}
+			xhr.send(null);
+		}
+
+		function sortCar() {
+			console.log('Button Clicked');
+			indexedFile.cars.push(unindexedImages[indexedFile.counter]);
+			indexedFile.counter++;
+			upload();
+			renderImages();
+		}
+
+		function sortNoCar() {
+			console.log('Button Clicked');
+			indexedFile.nocars.push(unindexedImages[indexedFile.counter]);
+			indexedFile.counter++;
+			upload();
+			renderImages();
+		}
+
+		function notRelevant() {
+			console.log('Button Clicked');
+			indexedFile.counter++;
+			upload();
+			renderImages();
+		}
+
+		function renderImages() {
+			if (indexedFile.counter >= unindexedImages.length) {
+				location.reload();
+			} else {
+				var imgTag = '/srcimages/' + indexedFile.month + '/' + unindexedImages[indexedFile.counter];
+				console.log(imgTag);
+				document.querySelector('#content').innerHTML =
+					'<div class=row><div style="margin:10px">Sorted Car: '+indexedFile.cars.length+'</div> <div style="margin:10px">Sorted No Car: '+indexedFile.nocars.length+'</div></div>'+
+					'<div class="row" style=""><img src="' + imgTag + '" style="max-height: 1000px;max-width:1000px"><div class="btn" onclick="location.reload()">Exit</div></div>' +
+					'<div class="row" style="text-align:center"><div class="btn" onclick="sortCar()">Vehicle</div>' +
+					'<div class="btn" onclick="sortNoCar()">No Vehicle</div>' +
+					'<div class="btn" onclick="notRelevant()">Not Relevant</div></div>';
+			}
+		}
+
+		function upload() {
+			var xhr = new XMLHttpRequest();
+			xhr.open("PUT", '/indexedFile/' + indexedFile.user + '-' + indexedFile.month + '.json');
+			xhr.send(JSON.stringify(indexedFile));
+		}
+
+		function loadImages() {
+			var xhrImage = new XMLHttpRequest();
+
+			xhrImage.open('GET', '/srcimages/' + indexedFile.month, true);
+			xhrImage.responseType = 'text';
+
+			xhrImage.onload = function () {
+				if (xhrImage.readyState === xhrImage.DONE) {
+					if (xhrImage.status === 200) {
+						//console.log(xhrImage.responseText);
+						//html = JSON.parse(xhrImage.responseText);
+						unindexedImages = JSON.parse(xhrImage.response);
+						/*
+						var files = html.match(/href=\"(.*)\"/g).map(function(e) {
+							return e.substr(6, e.length-7);
+						});
+
+						unindexedImages = files.slice();
+						*/
+						renderImages();
+
+						//imagesJson = JSON.parse(xhrImage.responseText);
+					}
+				}
+			}
+			xhrImage.send(null);
+		}
+	</script>
+</body>
+
+</html>
